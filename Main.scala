@@ -8,7 +8,7 @@ object Main {
   def main(args: Array[String]): Unit = {
     val file = new File(lib)
     val files = file.listFiles()
-    var translationLine : String = ""
+    var translationLine : String = " "
 
     for (f <- files) {
       if (f.getName().endsWith(".vm")) {
