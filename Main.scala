@@ -1,3 +1,8 @@
+/*
+  Exercise_1 By Tahel El Al (324012129) and Adva Cohen (323840561)
+  From VM to ASM basic data access, statics and arithmetics.
+ */
+
 import java.io.{File, FileOutputStream, PrintWriter}
 import scala.io.Source
 
@@ -6,7 +11,7 @@ object Main {
   var curFile : String = ""
 
   def main(args: Array[String]): Unit = {
-    val file = new File("C:\\Users\\tahel\\Documents\\AAA_Study\\Ecronot\\Levels\\ex_nurit\\Exercises\\Exercises\\Targil1\\project_07\\MemoryAccess\\BasicTest")
+    val file = new File("C:\\Users\\tahel\\Documents\\AAA_Study\\Ecronot\\Levels\\Exersice_1")
     val files = file.listFiles()
     var translationLine : String = " "
 
@@ -18,7 +23,7 @@ object Main {
 
         curFile = f.getName() //className
 
-        for (line <- Source.fromFile(curFile).getLines())
+        for (line <- Source.fromFile(f).getLines())
         {
           var curWordList = line.split(" ")
           var cmd = curWordList(0)
@@ -41,7 +46,7 @@ object Main {
             case "and" => translationLine = and(cmd)
             case "or" => translationLine = or(cmd)
             case "not" => translationLine = not(cmd)
-            case default =>
+            case default => translationLine = ""
           }
           writer.write(translationLine)
         }
@@ -49,43 +54,27 @@ object Main {
       }
     }
   }
-  /*
-  /*
-        "\nM=M-1" + //A=RAM[SP]-1
-        "\n@SP"  + //D=RAM[RAM[SP]-1 ] (FIRST_POP)
-        "\nA=M" + //A=RAM[SP]-2 --M=SECOND_POP
-        "\nD=M" + //M=RAM[RAM[SP]-1] + RAM[RAM[SP]-2]
-        "\n@SP"   +
-        "\nM=M-1" +
-        "\n@SP" +
-        "\nA=M" +
-        "\nA=M" +
-        "\nD=D+A" +
-        "\n@SP" +
-        "\nA=M" +
-        "\nM=D"
-   */
-   */
+
   //functions to convert from vm to asm
   def add (lib: String) :  String = {
     //pop pop compute push
-    var translateSeg = "@SP" +
+    var translateSeg = "\n//ADD" + "\n@SP" +
       "\nA=M-1" + //A=RAM[SP]-1
       "\nD=M"   + //D=RAM[RAM[SP]-1 ] (FIRST_POP)
-      "\nA=A-1" + //A=RAM[SP]-2 --M=SECOND_POP
+      "\nA=A-1" + //A=RAM[SP]-2 --M = SECOND_POP
       "\nM=D+M" + //M=RAM[RAM[SP]-1] + RAM[RAM[SP]-2]
       "\n@SP"   +
-      "\nM=M-1\n" // move the stack pointer to the new available place
+      "\nM=M-1\n" //move the stack pointer to the new available place
     return translateSeg
   }
 
   def sub (lib: String) :  String = {
     //pop pop compute push
-    var translateSeg = "@SP" +
+    var translateSeg = "\n//SUB" + "\n@SP" +
       "\nA=M-1" + //A=RAM[SP]-1
-      "\nD=M"   + //D=RAM[RAM[SP]-1 ] (FIRST_POP)
-      "\nA=A-1" + //A=RAM[SP]-2 --M=SECOND_POP
-      "\nM=M-D" + //M=RAM[RAM[SP]-1] + RAM[RAM[SP]-2]
+      "\nD=M"   + //D = RAM[RAM[SP]-1 ] --FIRST POP
+      "\nA=A-1" + //A=RAM[SP]-2 -- RAM[A] = SECOND POP
+      "\nM=M-D" + //M=RAM[RAM[SP]-2] - RAM[RAM[SP]-1]
       "\n@SP"   +
       "\nM=M-1\n" // move the stack pointer to the new available place
     return translateSeg
@@ -93,12 +82,10 @@ object Main {
 
   def neg (lib: String) : String = {
     //pop compute push
-    var translateSeg = "@SP" +
+    var translateSeg = "\n//NEG" + "\n@SP" +
       "\nA=M-1" +
-      "\n@SP"   +
       "\nD=M" +
-      "\nD=M" +
-      "\nM=-D\n"
+      "\nM=-D\n" //push neg val of top val in stack
     return translateSeg
   }
 
@@ -109,27 +96,28 @@ object Main {
 */
   def eq (lib: String) : String = {
     //pop pop compute push
-    var translateSeg = "@SP" +
-      "\nA=M-1" + //RAM[SP] = RAM[SP] - 1 --RAM[SP]=POINTER TO TOP VAL IN THE STACK
-      "\nD=M"   +
-      "\nA=A-1" +
-      "\nD=D-M" + //D = RAM[RAM[SP]] -- D=TOP VAL IN THE STACK --FIRST_POP
-      "\n@IF_TRUE0" +
-      "\nD; JEQ" +
-      "\nD=0" +
-      "\n@SP" + //A=POINTER TO NEXT TOP VAL IN THE STACK
-      "\nA=M-1" + //RAM[SP]=NEXT TOP VAL IN THE STACK --SECOND_POP
-      "\nA=A-1" +
-      "\nM=D" + //A = LABLE TRUE
-      "\n@IF_FALSE0 " + //IF D==0 --TRUE
-      "\n0; JMP" + //A = LABLE FALSE
-      "\n(IF_TRUE0)" + //JUMP ANYWAY
-      "\nD=-1" +
+    var translateSeg = "\n//EQ" +
       "\n@SP" +
       "\nA=M-1" +
+      "\nD=M"   + //D=RAM[RAM[SP]-1] --FIRST POP
+      "\nA=A-1" +  //MOVING TO THE SECOND POP
+      "\nD=D-M" + //D=RAM[RAM[SP]-1] - RAM[RAM[SP]-2]
+      "\n@IF_TRUE0" +
+      "\nD;JEQ" + //IF D == 0 -- IF EQUAL JUMP TO TRUE
+      "\nD=0" +
+      "\n@SP" +
+      "\nA=M-1" + //RAM[SP] = RAM[RAM[SP]-1] --MOVING SP POINTER TO TOP VAL IN STACK --POP
       "\nA=A-1" +
-      "\nM=D" + //POINTER TO TOP OF STACK = RAM[SP]
-      "\n(IF_FALSE0)" + //RAM[TOP_OF_STACK] = 0
+      "\nM=D" + // TOP VAL IN STACK = 0
+      "\n@IF_FALSE0" +
+      "\n0; JMP" + //JUMP ANYWAY TO FALSE
+      "\n(IF_TRUE0)" +
+      "\nD=-1" + //D=TRUE
+      "\n@SP" +
+      "\nA=M-1" + //SP = RAM[SP]-1 --MOVING SP POINTER TO NEXT TOP VAL IN STACK --POP
+      "\nA=A-1" + //RAM[SP]-1 = RAM[RAM[SP]-1] - 1
+      "\nM=D" + //TOP OF THE STACK = -1 --IF TRUE
+      "\n(IF_FALSE0)" +
       "\n@SP" +
       "\nM=M-1\n" //MOVING SP TO NEXT AVAILABLE PLACE
     return translateSeg
@@ -137,63 +125,63 @@ object Main {
 
   def gt (lib: String) : String = {
     //pop pop compute push
-    var translateSeg = "@SP" +
-      "\nA=M-1" + //RAM[SP] = RAM[SP] - 1 --RAM[SP]=POINTER TO TOP VAL IN THE STACK
+    var translateSeg =  "\n//GT" + "\n@SP" +
+      "\nA=M-1" +
       "\nD=M"   +
       "\nA=A-1" +
-      "\nD=D-M" + //D = RAM[RAM[SP]] -- D=TOP VAL IN THE STACK --FIRST_POP
-      "\n@IF_TRUE0" +
-      "\nD; JLQ" +
+      "\nD=D-M" +
+      "\n@IF_TRUE1" +
+      "\nD;JLT" +
       "\nD=0" +
-      "\n@SP" + //A=POINTER TO NEXT TOP VAL IN THE STACK
-      "\nA=M-1" + //RAM[SP]=NEXT TOP VAL IN THE STACK --SECOND_POP
+      "\n@SP" +
+      "\nA=M-1" +
       "\nA=A-1" +
-      "\nM=D" + //A = LABLE TRUE
-      "\n@IF_FALSE0 " + //IF D==0 --TRUE
-      "\n0; JMP" + //A = LABLE FALSE
-      "\n(IF_TRUE0)" + //JUMP ANYWAY
+      "\nM=D" +
+      "\n@IF_FALSE1" +
+      "\n0; JMP" +
+      "\n(IF_TRUE1)" +
       "\nD=-1" +
       "\n@SP" +
       "\nA=M-1" +
       "\nA=A-1" +
-      "\nM=D" + //POINTER TO TOP OF STACK = RAM[SP]
-      "\n(IF_FALSE0)" + //RAM[TOP_OF_STACK] = 0
+      "\nM=D" +
+      "\n(IF_FALSE1)" +
       "\n@SP" +
-      "\nM=M-1\n" //MOVING SP TO NEXT AVAILABLE PLACE
+      "\nM=M-1\n"
     return translateSeg
   }
 
   def lt (lib: String) : String = {
     //pop pop compute push
-    var translateSeg = "@SP" +
-      "\nA=M-1" + //RAM[SP] = RAM[SP] - 1 --RAM[SP]=POINTER TO TOP VAL IN THE STACK
+    var translateSeg = "\n//LT" + "\n@SP" +
+      "\nA=M-1" +
       "\nD=M"   +
       "\nA=A-1" +
-      "\nD=D-M" + //D = RAM[RAM[SP]] -- D=TOP VAL IN THE STACK --FIRST_POP
-      "\n@IF_TRUE0" +
-      "\nD; JGT" +
+      "\nD=D-M" +
+      "\n@IF_TRUE2" +
+      "\nD;JGT" +
       "\nD=0" +
-      "\n@SP" + //A=POINTER TO NEXT TOP VAL IN THE STACK
-      "\nA=M-1" + //RAM[SP]=NEXT TOP VAL IN THE STACK --SECOND_POP
+      "\n@SP" +
+      "\nA=M-1" +
       "\nA=A-1" +
-      "\nM=D" + //A = LABLE TRUE
-      "\n@IF_FALSE0" + //IF D<0 --TRUE
-      "\n0; JMP" + //A = LABLE FALSE
-      "\n(IF_TRUE0)" + //JUMP ANYWAY
+      "\nM=D" +
+      "\n@IF_FALSE2" +
+      "\n0; JMP" +
+      "\n(IF_TRUE2)" +
       "\nD=-1" +
       "\n@SP" +
       "\nA=M-1" +
       "\nA=A-1" +
-      "\nM=D" + //POINTER TO TOP OF STACK = RAM[SP]
-      "\n(IF_FALSE0)" + //RAM[TOP_OF_STACK] = 0
+      "\nM=D" +
+      "\n(IF_FALSE2)" +
       "\n@SP" +
-      "\nM=M-1\n" //MOVING SP TO NEXT AVAILABLE PLACE
+      "\nM=M-1\n"//MOVING SP TO NEXT AVAILABLE PLACE
     return translateSeg
   }
 
   def and (lib: String) : String = {
     //pop pop compute push
-    var translateSeg = "@SP" +
+    var translateSeg = "\n//AND" + "\n@SP" +
       "\nA=M-1" + //A=RAM[SP]-1
       "\nD=M"   + //D=RAM[RAM[SP]-1 ] (FIRST_POP)
       "\nA=A-1" + //A=RAM[SP]-2 --M=SECOND_POP
@@ -205,7 +193,7 @@ object Main {
 
   def or (lib: String) : String = {
     //pop pop compute push
-    var translateSeg = "@SP" +
+    var translateSeg = "\n//OR" + "\n@SP" +
       "\nA=M-1" + //A=RAM[SP]-1
       "\nD=M"   + //D=RAM[RAM[SP]-1 ] (FIRST_POP)
       "\nA=A-1" + //A=RAM[SP]-2 --M=SECOND_POP
@@ -216,7 +204,7 @@ object Main {
   }
 
   def not (lib: String) : String = {
-    var translateSeg = "@SP" +
+    var translateSeg = "\n//NOT" + "\n@SP" +
       "\nA=M-1" + //A=RAM[SP]-1
       "\nM=!M\n" //RAM[RAM[SP]-1]=!RAM[RAM[SP]-1]
     return translateSeg
@@ -229,7 +217,7 @@ object Main {
     segment match {
       //Memory access cases
       case "constant" =>
-        translateSeg = "@" + index +
+        translateSeg = "//PUSH CONSTANT" + "\n@" + index +
           "\nD=A" +
           "\n@SP" +
           "\nA=M" + // next available place in the stack
@@ -237,167 +225,179 @@ object Main {
           "\n@SP" +
           "\nM=M+1\n" // move the stack pointer to the next available place
       case "local" => //push into the top of the stack the value that is in address RAM[ RAM [LCL] + x ]
-        translateSeg = "@" + index +
+        translateSeg = "//PUSH LOCAL" + "\n@" + index +
           "\nD=A" + // d = index
           "\n@LCL" +
           "\nA=M+D" + //a = ram[lcl] + index
           "\nD=M" +  // d = ram[ram[lcl] + index]
           "\n@SP" +
-          "\nM=D"+
+          "\nA=M" +
+          "\nM=D"+ //ram[ram[SP]] = ram[ram[LCL] + index]
           "\n@SP" +
           "\nM=M+1\n"
       case "argument" =>
-        translateSeg = "@" + index +
+        translateSeg = "\n//PUSH ARG" +
+          "\n@" + index +
           "\nD=A" + // d = index
           "\n@ARG" +
-          "\nA=M+D" + //a = ram[lcl] + index
-          "\nD=M" +  // d = ram[ram[lcl] + index]
+          "\nA=M+D" + //a = ram[ARG] + index
+          "\nD=M" +  // d = ram[ram[ARG] + index]
           "\n@SP" +
-          "\nM=D"+
+          "\nA=M" +
+          "\nM=D"+ //ram[ram[SP]] = ram[ram[ARG] + index]
           "\n@SP" +
           "\nM=M+1\n"
       case "this" =>
-        translateSeg = "@" + index +
+        translateSeg = "\n//PUSH THIS" + "\n@" + index +
           "\nD=A" + // d = index
           "\n@THIS" +
-          "\nA=M+D" + //a = ram[lcl] + index
-          "\nD=M" +  // d = ram[ram[lcl] + index]
+          "\nA=M+D" + //a = ram[THIS] + index
+          "\nD=M" +  // D = ram[ram[THIS] + index]
           "\n@SP" +
-          "\nM=D"+
+          "\nA=M" +
+          "\nM=D"+ //ram[ram[SP]] = ram[ram[THIS] + index]
           "\n@SP" +
           "\nM=M+1\n"
       case "that" =>
-        translateSeg = "@" + index +
+        translateSeg = "\n//PUSH THAT" + "\n@" + index +
           "\nD=A" + // d = index
           "\n@THAT" +
           "\nA=M+D" +
-          "\nD=M" +
+          "\nD=M" + // D = ram[ram[THAT] + index]
           "\n@SP" +
-          "\nM=D"+
+          "\nA=M" +
+          "\nM=D"+ //ram[ram[SP]] = ram[ram[THAT] + index]
           "\n@SP" +
           "\nM=M+1\n"
       case "temp" =>
-        translateSeg = "@" + index +
-          "\nD=A" + // d = index
-          "\n@5" +
-          "\nD=A+D" + //D = 5 + index
-          "\n@D" +
-          "\nD=M" +  // d = ram[5 + index]
+        var plus_5 :Int = (index.toInt + 5) //5+index
+        translateSeg = "\n//PUSH TEMP" +
+          "\n@" +
+          plus_5.toString +
+          "\nD=M" + //D=RAM[5+INDEX]
           "\n@SP" +
-          "\nM=D" +
+          "\nA=M" +
+          "\nM=D" + //RAM[RAM[SP]] = RAM[5+INDEX]
           "\n@SP" +
           "\nM=M+1\n"
       case "static" =>
         translateSeg = "@" + curFile + "." + index +
-          "\nD=M" + // d = RAM[curFile.index]
+          "\nD=M" + // D = RAM[curFile.index]
           "\n@SP" +
           "\nA=M" +
-          "\nM=D" +
+          "\nM=D" + //RAM[RAM[SP]] = RAM[curFile.index]
           "\n@SP" +
-          "\nM=M+1\n"
+          "\nM=M+1\n" //MOVING SP TO THE NEXT AVAILABLE PLACE
       case "pointer" =>
         translateSeg = ""
-        if(index == 0)
+        if(index == "0")
         {
-          translateSeg += "@THIS\n"
+          translateSeg +=  "\n@THIS\n"
         }
         else
         {
-          translateSeg += "@THAT\n"
+          translateSeg += "\n@THAT\n"
         }
-        translateSeg += "\nD=M" +
+        translateSeg +=
+          "\n//pointer push" +
+          "\nD=M" + //D=RAM[POINTER]
           "\n@SP" +
           "\nA=M" +
-          "\nM=D" +
+          "\nM=D" + //RAM[SP] = RAM[POINTER]
           "\n@SP" +
-          "\nM=M+1\n"
+          "\nM=M+1\n" //MOVING SP TO THE NEXT AVAILABLE PLACE
+      case default => translateSeg = ""
     }
     return translateSeg
   }
 
   def pop (segment: String, index: String) :  String = {
     var translateSeg : String = ""
+    var translateIndex : String = ""
+    for (i <- 0 to index.toInt - 1)
+    {
+      translateIndex += "\nA=A+1\n"
+    }
     segment match {
       case "local" => //push into the top of the stack the value that is in address RAM[ RAM [LCL] + x ]
-        translateSeg = "@" + index +
-          "\nD=A"+ //D=INDEX
+        translateSeg = "\n//POP LCL" + "\n@" +"SP"+
+          "\nA=M-1"+
+          "\nD=M"+ //D=RAM[RAM[SP] - 1] -- TOP VALUE IN THE STACK
           "\n@LCL"+
-          "\nA=M+D"+ //A=RAM[LCL]+INDEX
-          "\nD=M"+ //RAM[RAM[LCL] + INDEX]
-          "\n@SP"+
-          "\nA=M-1"+ //A = RAM[SP] - 1
-          "\nD=M "+ //RAM[RAM[LCL] + INDEX] = RAM[RAM[SP-1]]
-          "\n@SP"+
+          "\nA=M"+ //RAM[RAM[LCL] + INDEX]
+          translateIndex +
+          "\nM=D"+ //RAM[RAM[LCL] + INDEX] = RAM[RAM[SP-1]]
+          "\n@SP "+
           "\nM=M-1\n"
       case "argument" =>
-        translateSeg = "@" + index +
-          "\nD=A"+
+        translateSeg = "\n//POP ARG" + "\n@" +"SP"+
+          "\nA=M-1"+
+          "\nD=M"+  //D=RAM[RAM[SP] - 1] -- TOP VALUE IN THE STACK
           "\n@ARG"+
-          "\nA=M+D"+
-          "\nD=M"+ //RAM[RAM[LCL] + INDEX]
-          "\n@SP"+
-          "\nA=M-1"+ //A = RAM[SP] - 1
-          "\nD=M "+ //RAM[RAM[LCL] + INDEX] = RAM[RAM[SP-1]]
-          "\n@SP"+
+          "\nA=M"+ //RAM[RAM[ARG] + INDEX]
+          translateIndex + //REPEAT A=A+1 INDEX TIMES
+          "M=D"+ //RAM[RAM[THIS] + INDEX] = RAM[RAM[SP-1]]
+          "\n@SP "+
           "\nM=M-1\n"
       case "this" =>
-        translateSeg = "@" + index +
-          "\nD=A"+
+        translateSeg = "\n//POP THIS" +
+          "\n@SP"+
+          "\nA=M-1"+
+          "\nD=M"+ //D=RAM[RAM[SP] - 1] -- TOP VALUE IN THE STACK
           "\n@THIS"+
-          "\nA=M+D"+
-          "\nD=M"+ //RAM[RAM[LCL] + INDEX]
-          "\n@SP"+
-          "\nA=M-1"+ //A = RAM[SP] - 1
-          "\nD=M "+ //RAM[RAM[LCL] + INDEX] = RAM[RAM[SP-1]]
-          "\n@SP"+
+          "\nA=M"+ //RAM[RAM[THIS] + INDEX]
+          translateIndex + //REPEAT A=A+1 INDEX TIMES
+          "M=D"+ //RAM[RAM[THIS] + INDEX] = RAM[RAM[SP-1]]
+          "\n@SP "+
           "\nM=M-1\n"
       case "that" =>
-        translateSeg = "@" + index +
-          "\nD=A"+ //D=INDEX
-          "\n@THAT"+
-          "\nA=M+D"+ //A=RAM[THAT]+D
-          "\nD=M"+ //RAM[RAM[THAT] + INDEX]
+        translateSeg = "\n//POP THAT" +
           "\n@SP"+
-          "\nA=M-1"+ //A = RAM[SP] - 1
-          "\nD=M "+ //RAM[RAM[THAT] + INDEX]] = RAM[RAM[SP]-1]
-          "\n@SP" +
+          "\nA=M-1"+
+          "\nD=M"+ //D = RAM[RAM[SP]-1]
+          "\n@THAT"+
+          "\nA=M"+ //A=RAM[THAT]
+          translateIndex + //REPEAT A=A+1 INDEX TIMES
+          "M=D"+ //RAM[RAM[THAT] + INDEX] = RAM[RAM[SP-1]]
+          "\n@SP "+
           "\nM=M-1\n"
       case "temp" =>
-        translateSeg = "@" + index +
-          "\nD=A"+ //D = INDEX
-          "\n@5"+
-          "\nA=A+D"+ //A=5 + INDEX
-          "\nD=M"+ //D=RAM[5 + INDEX]
-          "\n@SP"+
-          "\nA=M-1"+ //A = RAM[SP] - 1
-          "\nD=M"+ //RAM[5 + INDEX] = RAM[RAM[SP-1]]
+        var plus5 :Int = (index.toInt + 5)
+        translateSeg = "\n//POP TEMP" +
+          "\n@SP" +
+          "\nA=M-1"+
+          "\nD=M"+ //D = RAM[RAM[SP] - 1] -- TOP VAL IN THE STACK
+          "\n@"+ plus5.toString +
+          "\nM=D"+ //RAM[5 + INDEX] = RAM[RAM[SP-1]]
           "\n@SP"+
           "\nM=M-1\n"
       case "static" =>
-        translateSeg = "@SP" +
-          "\nM=M-1" +
+        translateSeg = "\n//POP STATIC" +
+          "\n@SP" +
+          "\nM=M-1" + // RAM[SP] = RAM[SP]-1 --MOVING POINTER SP TO CURRENT TOP VAL IN STACK
           "\n@SP" +
           "\nA=M" +
-          "\nD=M" +
+          "\nD=M" + //D=RAM[RAM[SP]]
           "\n@" + curFile + "." + index +
-          "\nM=D\n"
+          "\nM=D\n" //RAM[CURFILE.INDEX] = RAM[RAM[SP]]
       case "pointer" =>
         var pointerNum : String = ""
-         if (index == 0)
-           {
-             pointerNum = "@THIS"
-           }
-        else
-         {
-           pointerNum = "\n@THAT"
-         }
+        if (index == "0")
+        {
+          pointerNum = "\n//pointer pop 0" +"\n@THIS"
+        }
+        if (index == "1")
+        {
+          pointerNum = "\n//pointer pop 1" + "\n@THAT"
+        }
         translateSeg = "\n@SP" +
           "\nA=M-1" +
-          "\nD=M" +
-          pointerNum +
-          "\nM=D" +
+          "\nD=M" + //D=RAM[RAM[SP]-1]
+          pointerNum + //@THAT OR @THIS
+          "\nM=D" + //RAM[POINTER] = RAM[RAM[SP]-1]
           "\n@SP" +
           "\nM=M-1\n"
+      case default => translateSeg = ""
     }
     return translateSeg
   }
